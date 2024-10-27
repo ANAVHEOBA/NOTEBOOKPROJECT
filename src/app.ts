@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express, { Application } from "express";
 import helmet from 'helmet';
 import morgan from "morgan";
@@ -31,16 +34,6 @@ class App {
 
     // Add helmet middleware for security headers
     this.app.use(helmet());
-    
-    // Add Content Security Policy
-    this.app.use(helmet.contentSecurityPolicy({
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-      },
-    }));
 
     // Add rate limiting
     const loginLimiter = rateLimit({
@@ -49,8 +42,23 @@ class App {
     });
     this.app.use('/api/users/login', loginLimiter);
 
-    // Add CSRF protection
-    this.app.use(csurf());
+    // Add additional security measures only in production
+    if (process.env.NODE_ENV === 'production') {
+      // Add CSRF protection
+      this.app.use(csurf());
+
+      // Add Content Security Policy
+      this.app.use(
+        helmet.contentSecurityPolicy({
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+          },
+        })
+      );
+    }
   }
 
   private initializeRoutes() {
